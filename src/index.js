@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const { v4: uuidv4, validate } = require('uuid');
+const { json } = require('express');
 
 const app = express();
 app.use(express.json());
@@ -10,20 +11,73 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find(user => user.username === username);
+
+  if (!user) {
+    return response.status(404).json({ error: "User not found!" })
+  }
+
+  request.user = user;
+
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  if (user.pro === false && user.todos.length >= 10) {
+    return response.status(403).json({ error: "You already have 10 'todos'. Sign up for the PRO plan now!" })
+  }
+
+  return next();
+
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  const { username } = request.headers;
+
+  if (!validate(id)) {
+    return response.status(400).json({ error: "Invalid ID" });
+  }
+
+  const user = users.find(user => user.username === username);
+  if (!user) {
+    return response.status(404).json({ error: "User not found!" });
+  }
+
+  const todo = user.todos.find(todo => todo.id === id);
+  if (!todo) {
+    return response.status(404).json({ error: "Todo not found!" });
+  }
+
+  request.user = user;
+  request.todo = todo;
+
+  return next();
+
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+
+  const user = users.find(user => user.id === id);
+
+  if (!user) {
+    return response.status(404).json({ error: "User not found!" })
+  }
+
+  request.user = user;
+
+  return next();
 }
+
+//All Users
+app.get('/users', (request, response) => {
+  return response.json({ users });
+});
 
 app.post('/users', (request, response) => {
   const { name, username } = request.body;
